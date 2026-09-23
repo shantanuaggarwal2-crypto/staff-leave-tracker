@@ -314,8 +314,12 @@
     <h3>Edit details</h3>
     <form method="POST" action="/admin/staff/<%= user.id %>/edit">
       <div class="field"><label>Name</label><input type="text" name="name" value="<%= user.name %>" style="width:100%;" /></div>
+      <% if (user.role !== 'admin') { %>
+      <div class="field"><label>Username</label><input type="text" name="username" value="<%= user.username %>" pattern="[a-zA-Z0-9_.-]+" style="width:100%;" /></div>
+      <% } %>
       <div class="field"><label>Monthly salary (₹)</label><input type="number" step="0.01" name="monthlySalary" value="<%= user.monthlySalary %>" style="width:100%;" /></div>
       <div class="field"><label><input type="checkbox" name="active" <%= user.active !== false ? 'checked' : '' %> style="width:auto;" /> Active (can log in)</label></div>
+      <% if (editError) { %><div class="error"><%= editError %></div><% } %>
       <button class="btn" type="submit">Save</button>
     </form>
   </div>

@@ -163,6 +163,10 @@ app.get('/admin', requireAuth, requireAdmin, (req, res) => {
   });
 });
 
+app.get('/admin/password', requireAuth, requireAdmin, (req, res) => {
+  res.render('admin_password', { currentUser: req.currentUser });
+});
+
 app.get('/admin/staff/new', requireAuth, requireAdmin, (req, res) => {
   res.render('admin_staff_new', { currentUser: req.currentUser, error: null });
 });
@@ -189,10 +193,8 @@ app.post('/admin/staff/new', requireAuth, requireAdmin, (req, res) => {
   res.redirect('/admin');
 });
 
-app.get('/admin/staff/:id', requireAuth, requireAdmin, (req, res) => {
+function renderStaffDetail(req, res, user, extra = {}) {
   const data = req.data;
-  const user = data.users.find((u) => u.id === parseInt(req.params.id, 10));
-  if (!user) return res.status(404).send('Not found');
   const year = parseInt(req.query.year, 10) || currentYear();
   const month = parseInt(req.query.month, 10) || currentMonth();
   const summary = buildStaffSummary(data, user, year, month);
@@ -206,14 +208,40 @@ app.get('/admin/staff/:id', requireAuth, requireAdmin, (req, res) => {
     month,
     ...summary,
     leaveRequests: myRequests,
+    editError: null,
+    ...extra,
   });
+}
+
+app.get('/admin/staff/:id', requireAuth, requireAdmin, (req, res) => {
+  const data = req.data;
+  const user = data.users.find((u) => u.id === parseInt(req.params.id, 10));
+  if (!user) return res.status(404).send('Not found');
+  renderStaffDetail(req, res, user);
 });
 
 app.post('/admin/staff/:id/edit', requireAuth, requireAdmin, (req, res) => {
   const data = req.data;
   const user = data.users.find((u) => u.id === parseInt(req.params.id, 10));
   if (!user) return res.status(404).send('Not found');
-  const { name, monthlySalary, active } = req.body;
+  const { name, username, monthlySalary, active } = req.body;
+
+  if (user.role !== 'admin' && typeof username === 'string') {
+    const trimmed = username.trim();
+    if (!trimmed || !/^[a-zA-Z0-9_.-]+$/.test(trimmed)) {
+      return renderStaffDetail(req, res, user, {
+        editError: 'Username can only contain letters, numbers, dots, underscores and hyphens.',
+      });
+    }
+    const taken = data.users.some(
+      (u) => u.id !== user.id && u.username.toLowerCase() === trimmed.toLowerCase()
+    );
+    if (taken) {
+      return renderStaffDetail(req, res, user, { editError: 'That username is already taken.' });
+    }
+    user.username = trimmed;
+  }
+
   user.name = name || user.name;
   user.monthlySalary = parseFloat(monthlySalary) || 0;
   user.active = active === 'on';
