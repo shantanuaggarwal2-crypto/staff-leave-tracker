@@ -5,6 +5,7 @@ set -euo pipefail
 
 PROJECT_DIR="/Users/shantanuaggarwal/staff-leave-tracker"
 BACKUP_DIR="/Users/shantanuaggarwal/staff-leave-tracker-backups"
+ICLOUD_DIR="/Users/shantanuaggarwal/Library/Mobile Documents/com~apple~CloudDocs/staff-leave-tracker-backups"
 RETENTION_DAYS=90
 
 mkdir -p "$BACKUP_DIR"
@@ -21,11 +22,16 @@ if node -e "JSON.parse(require('fs').readFileSync(process.argv[1], 'utf8'))" "$T
    && [ "$(stat -f%z "$TMP")" -gt 20 ]; then
   mv "$TMP" "$OUT"
   echo "$(date): backed up to $OUT" >> "$BACKUP_DIR/backup.log"
+
+  mkdir -p "$ICLOUD_DIR"
+  cp "$OUT" "$ICLOUD_DIR/"
+  echo "$(date): mirrored to iCloud Drive" >> "$BACKUP_DIR/backup.log"
 else
   echo "$(date): backup FAILED validation, discarding" >> "$BACKUP_DIR/backup.log"
   rm -f "$TMP"
   exit 1
 fi
 
-# Prune backups older than RETENTION_DAYS
+# Prune backups older than RETENTION_DAYS (both locations)
 find "$BACKUP_DIR" -name 'db-*.json' -mtime +"$RETENTION_DAYS" -delete
+find "$ICLOUD_DIR" -name 'db-*.json' -mtime +"$RETENTION_DAYS" -delete 2>/dev/null || true
