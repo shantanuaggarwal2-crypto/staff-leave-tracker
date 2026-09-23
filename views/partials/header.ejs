@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title><%= typeof title !== 'undefined' ? title : 'Staff Leave & Advance Tracker' %></title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+<% if (typeof currentUser !== 'undefined' && currentUser) { %>
+  <div class="topbar">
+    <div class="brand">Staff <span>Tracker</span></div>
+    <div class="user-info">
+      <span><%= currentUser.name %> &middot; <%= currentUser.role === 'admin' ? 'Admin' : 'Staff' %></span>
+      <% if (currentUser.role === 'admin') { %><a href="/admin">Dashboard</a><% } else { %><a href="/me">My Dashboard</a><% } %>
+      <form method="POST" action="/logout" style="display:inline;">
+        <button class="btn secondary small" type="submit">Log out</button>
+      </form>
+    </div>
+  </div>
+<% } %>
+<div class="container">

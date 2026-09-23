@@ -1,0 +1,17 @@
+{
+  "name": "staff-leave-tracker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Leave & advance-payment tracker for staff, with an admin dashboard and individual staff logins.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "seed": "node lib/seed.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "ejs": "^3.1.10",
+    "express": "^4.19.2",
+    "express-session": "^1.18.0"
+  }
+}

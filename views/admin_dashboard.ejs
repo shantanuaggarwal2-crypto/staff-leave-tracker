@@ -1,0 +1,104 @@
+<%- include('partials/header', { title: 'Admin Dashboard', currentUser }) %>
+
+<div class="section-title-row">
+  <div>
+    <h1>Admin Dashboard</h1>
+    <p class="subtitle">Leave &amp; advance overview for <%= year %></p>
+  </div>
+  <div>
+    <form class="inline" method="GET" action="/admin">
+      <label style="margin:0;">Year</label>
+      <select name="year" onchange="this.form.submit()">
+        <% for (let y = year + 1; y >= year - 3; y--) { %>
+          <option value="<%= y %>" <%= y === year ? 'selected' : '' %>><%= y %></option>
+        <% } %>
+      </select>
+    </form>
+  </div>
+</div>
+
+<% if (pendingRequests.length > 0) { %>
+<div class="card">
+  <h3>Pending leave requests (<%= pendingRequests.length %>)</h3>
+  <table>
+    <thead><tr><th>Staff</th><th>Date</th><th>Reason</th><th></th></tr></thead>
+    <tbody>
+      <% pendingRequests.forEach(r => { %>
+      <tr>
+        <td><%= r.user ? r.user.name : '—' %></td>
+        <td><%= r.date %></td>
+        <td><%= r.reason || '—' %></td>
+        <td>
+          <form class="inline" method="POST" action="/admin/requests/<%= r.id %>/approve" style="display:inline;">
+            <button class="btn small" type="submit">Approve</button>
+          </form>
+          <form class="inline" method="POST" action="/admin/requests/<%= r.id %>/reject" style="display:inline;">
+            <button class="btn small secondary" type="submit">Reject</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } %>
+
+<div class="card">
+  <div class="section-title-row">
+    <h3>Staff overview</h3>
+    <a class="btn small" href="/admin/staff/new">+ Add staff</a>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Name</th>
+        <th class="num">Weekly free leaves</th>
+        <th class="num">Extra pool used</th>
+        <th class="num">Extra pool left</th>
+        <th class="num">Unpaid days</th>
+        <th class="num">Salary deduction</th>
+        <th class="num">Year-end bonus</th>
+        <th class="num">Salary due (this month)</th>
+        <th class="num">Advance salary (given this month)</th>
+        <th class="num">Advance outstanding</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% staff.forEach(s => { %>
+      <tr>
+        <td><a href="/admin/staff/<%= s.user.id %>?year=<%= year %>"><%= s.user.name %></a></td>
+        <td class="num"><%= s.leaveSummary.weeklyFreeCount %></td>
+        <td class="num"><%= s.leaveSummary.extraPoolUsed %> / <%= s.leaveSummary.poolMax %></td>
+        <td class="num"><span class="badge <%= s.leaveSummary.extraPoolRemaining > 0 ? 'green' : 'gray' %>"><%= s.leaveSummary.extraPoolRemaining %></span></td>
+        <td class="num"><%- s.leaveSummary.unpaidDeductionCount > 0 ? `<span class="badge red">${s.leaveSummary.unpaidDeductionCount}</span>` : '0' %></td>
+        <td class="num">₹<%= s.leaveSummary.deductionAmount.toLocaleString('en-IN') %></td>
+        <td class="num">₹<%= s.leaveSummary.bonusAmount.toLocaleString('en-IN') %></td>
+        <td class="num"><%- s.salaryStatus.balance > 0 ? `<span class="badge red">₹${s.salaryStatus.balance.toLocaleString('en-IN')}</span>` : (s.salaryStatus.balance < 0 ? `<span class="badge gray">₹${s.salaryStatus.balance.toLocaleString('en-IN')} (overpaid)</span>` : `<span class="badge green">Paid</span>`) %></td>
+        <td class="num"><%- s.salaryStatus.advanceSalaryGivenThisMonth > 0 ? `<span class="badge amber">₹${s.salaryStatus.advanceSalaryGivenThisMonth.toLocaleString('en-IN')}</span>` : '₹0' %></td>
+        <td class="num"><%- s.advSummary.outstanding > 0 ? `<span class="badge amber">₹${s.advSummary.outstanding.toLocaleString('en-IN')}</span>` : '₹0' %></td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <p class="subtitle" style="margin-top:8px;">"Advance salary" is separate from the advance ledger below — it's recovered automatically from next month's salary due and never affects the outstanding-advance figure.</p>
+</div>
+
+<div class="card">
+  <h3>Policy settings</h3>
+  <form class="field-row" method="POST" action="/admin/settings">
+    <div class="field">
+      <label>Extra leaves per calendar year</label>
+      <input type="number" name="extraLeavesPerYear" value="<%= settings.extraLeavesPerYear %>" min="0" required />
+    </div>
+    <div class="field">
+      <label>Salary divisor (days/month used for per-day rate)</label>
+      <input type="number" step="0.1" name="salaryDayDivisor" value="<%= settings.salaryDayDivisor %>" min="1" required />
+    </div>
+    <div class="field" style="align-self:flex-end;">
+      <button class="btn" type="submit">Save settings</button>
+    </div>
+  </form>
+  <p class="subtitle" style="margin-top:8px;">1 leave per week is always free and doesn't count toward the pool above. Extra leaves beyond the pool are deducted from salary at (monthly salary ÷ divisor) per day; unused pool days are paid out as a bonus at the same rate.</p>
+</div>
+
+<%- include('partials/footer') %>

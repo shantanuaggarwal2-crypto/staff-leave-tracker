@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in — Staff Tracker</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="card login-card">
+      <h1>Staff Tracker</h1>
+      <% if (error) { %><div class="error"><%= error %></div><% } %>
+      <form method="POST" action="/login">
+        <div class="field">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" autocomplete="username" required style="width:100%;" />
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" autocomplete="current-password" required style="width:100%;" />
+        </div>
+        <button class="btn" type="submit">Sign in</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,331 @@
+<%- include('partials/header', { title: user.name + ' — Staff Tracker', currentUser }) %>
+
+<div class="breadcrumb"><a href="/admin">Dashboard</a> / <%= user.name %></div>
+<div class="section-title-row">
+  <div>
+    <h1><%= user.name %></h1>
+    <p class="subtitle">@<%= user.username %> &middot; <%= user.active === false ? 'Inactive' : 'Active' %></p>
+  </div>
+  <form class="inline" method="GET" action="/admin/staff/<%= user.id %>">
+    <label style="margin:0;">Month</label>
+    <select name="month" onchange="this.form.submit()">
+      <% const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December']; %>
+      <% monthNames.forEach((mName, idx) => { %>
+        <option value="<%= idx + 1 %>" <%= (idx + 1) === month ? 'selected' : '' %>><%= mName %></option>
+      <% }) %>
+    </select>
+    <label style="margin:0;">Year</label>
+    <select name="year" onchange="this.form.submit()">
+      <% for (let y = year + 1; y >= year - 3; y--) { %>
+        <option value="<%= y %>" <%= y === year ? 'selected' : '' %>><%= y %></option>
+      <% } %>
+    </select>
+  </form>
+</div>
+
+<div class="grid cols-4">
+  <div class="stat">
+    <div class="label">Weekly free leaves</div>
+    <div class="value"><%= leaveSummary.weeklyFreeCount %></div>
+    <div class="hint">1/week, not deducted</div>
+  </div>
+  <div class="stat">
+    <div class="label">Extra pool</div>
+    <div class="value"><%= leaveSummary.extraPoolUsed %> / <%= leaveSummary.poolMax %></div>
+    <div class="hint"><%= leaveSummary.extraPoolRemaining %> remaining</div>
+  </div>
+  <div class="stat">
+    <div class="label">Unpaid / deducted</div>
+    <div class="value">₹<%= leaveSummary.deductionAmount.toLocaleString('en-IN') %></div>
+    <div class="hint"><%= leaveSummary.unpaidDeductionCount %> day(s) over pool</div>
+  </div>
+  <div class="stat">
+    <div class="label">Projected year-end bonus</div>
+    <div class="value">₹<%= leaveSummary.bonusAmount.toLocaleString('en-IN') %></div>
+    <div class="hint">for <%= leaveSummary.extraPoolRemaining %> unused pool day(s)</div>
+  </div>
+</div>
+
+<div class="grid cols-3" style="margin-top:16px;">
+  <div class="stat">
+    <div class="label">Advance given (all time)</div>
+    <div class="value">₹<%= advSummary.totalGiven.toLocaleString('en-IN') %></div>
+  </div>
+  <div class="stat">
+    <div class="label">Repaid / deducted back</div>
+    <div class="value">₹<%= advSummary.totalRepaid.toLocaleString('en-IN') %></div>
+  </div>
+  <div class="stat">
+    <div class="label">Outstanding advance</div>
+    <div class="value">₹<%= advSummary.outstanding.toLocaleString('en-IN') %></div>
+  </div>
+</div>
+
+<% const allMonthNames = ['','January','February','March','April','May','June','July','August','September','October','November','December']; %>
+<% const monthLabel = allMonthNames[month]; %>
+<% const prevMonthLabel = allMonthNames[month === 1 ? 12 : month - 1]; %>
+<% const nextMonthLabel = allMonthNames[month === 12 ? 1 : month + 1]; %>
+<h2>Salary — <%= monthLabel %> <%= year %></h2>
+<div class="grid cols-6">
+  <div class="stat">
+    <div class="label">Fixed monthly salary</div>
+    <div class="value">₹<%= salaryStatus.monthlySalary.toLocaleString('en-IN') %></div>
+  </div>
+  <div class="stat">
+    <div class="label">Leave deduction</div>
+    <div class="value">− ₹<%= salaryStatus.deductionThisMonth.toLocaleString('en-IN') %></div>
+    <div class="hint"><%= salaryStatus.unpaidDaysThisMonth %> unpaid day(s)</div>
+  </div>
+  <div class="stat">
+    <div class="label">Overtime this month</div>
+    <div class="value">+ ₹<%= salaryStatus.overtimeThisMonth.toLocaleString('en-IN') %></div>
+    <div class="hint"><%= salaryStatus.overtimeEntries.length %> entr(y/ies)</div>
+  </div>
+  <div class="stat">
+    <div class="label">Advance salary recovered</div>
+    <div class="value">− ₹<%= salaryStatus.advanceSalaryDeductedThisMonth.toLocaleString('en-IN') %></div>
+    <div class="hint">given in <%= prevMonthLabel %></div>
+  </div>
+  <div class="stat">
+    <div class="label">Paid so far</div>
+    <div class="value">₹<%= salaryStatus.totalPaid.toLocaleString('en-IN') %></div>
+    <div class="hint"><%= salaryStatus.payments.length %> payment(s)</div>
+  </div>
+  <div class="stat">
+    <div class="label">Balance due</div>
+    <div class="value">
+      <% if (salaryStatus.balance > 0) { %><span class="badge red">₹<%= salaryStatus.balance.toLocaleString('en-IN') %></span>
+      <% } else if (salaryStatus.balance < 0) { %><span class="badge gray">₹<%= Math.abs(salaryStatus.balance).toLocaleString('en-IN') %> overpaid</span>
+      <% } else { %><span class="badge green">Fully paid</span><% } %>
+    </div>
+    <div class="hint">net due: ₹<%= salaryStatus.netDue.toLocaleString('en-IN') %></div>
+  </div>
+</div>
+
+<% if (salaryStatus.advanceSalaryGivenThisMonth > 0) { %>
+<p class="subtitle" style="margin-top:10px;">₹<%= salaryStatus.advanceSalaryGivenThisMonth.toLocaleString('en-IN') %> advance salary given in <%= monthLabel %> will be deducted from <%= nextMonthLabel %>'s due.</p>
+<% } %>
+
+<div class="card" style="margin-top:16px;">
+  <h3>Pay salary <% if (salaryStatus.balance > 0) { %>&mdash; ₹<%= salaryStatus.balance.toLocaleString('en-IN') %> due<% } %></h3>
+  <form class="field-row" method="POST" action="/admin/staff/<%= user.id %>/salary-payment">
+    <input type="hidden" name="year" value="<%= year %>" />
+    <input type="hidden" name="month" value="<%= month %>" />
+    <div class="field"><label>Date</label><input type="date" name="date" required /></div>
+    <div class="field"><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" name="amount" value="<%= salaryStatus.balance > 0 ? salaryStatus.balance : '' %>" required /></div>
+    <div class="field"><label>Mode of payment</label>
+      <select name="mode">
+        <option value="cash">Cash</option>
+        <option value="bank_transfer">Bank Transfer</option>
+      </select>
+    </div>
+    <div class="field" style="flex:2;"><label>Note (optional, e.g. "installment 1 of 2")</label><input type="text" name="note" style="width:100%;" /></div>
+    <div class="field" style="align-self:flex-end;"><button class="btn" type="submit">Record payment</button></div>
+  </form>
+  <p class="subtitle" style="margin:8px 0 0;">Pay in one go or in installments &mdash; every payment logged here for <%= monthLabel %> <%= year %> adds up toward the balance above.</p>
+  <% if (salaryStatus.payments.length > 0) { %>
+  <table style="margin-top:12px;">
+    <thead><tr><th>Date</th><th class="num">Amount</th><th>Mode</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      <% salaryStatus.payments.slice().reverse().forEach(p => { %>
+      <tr>
+        <td><%= p.date %></td>
+        <td class="num">₹<%= p.amount.toLocaleString('en-IN') %></td>
+        <td><%= p.mode === 'bank_transfer' ? 'Bank Transfer' : 'Cash' %></td>
+        <td><%= p.note || '—' %></td>
+        <td>
+          <form method="POST" action="/admin/staff/<%= user.id %>/salary-payment/<%= p.id %>/delete" onsubmit="return confirm('Remove this payment entry?');">
+            <button class="btn small secondary" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Leaves — <%= year %></h2>
+<div class="card">
+  <form class="field-row" method="POST" action="/admin/staff/<%= user.id %>/leave">
+    <div class="field"><label>Date</label><input type="date" name="date" required /></div>
+    <div class="field" style="flex:2;"><label>Note (optional)</label><input type="text" name="note" placeholder="Reason" style="width:100%;" /></div>
+    <div class="field" style="align-self:flex-end;"><button class="btn" type="submit">Log leave</button></div>
+  </form>
+  <% if (leaveSummary.items.length === 0) { %>
+    <p class="empty">No leaves logged for <%= year %>.</p>
+  <% } else { %>
+  <table>
+    <thead><tr><th>Date</th><th>Category</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      <% leaveSummary.items.slice().reverse().forEach(item => { %>
+      <tr>
+        <td><%= item.date %></td>
+        <td>
+          <% if (item.category === 'weekly_free') { %><span class="badge green">Weekly free</span>
+          <% } else if (item.category === 'extra_pool') { %><span class="badge amber">Extra pool</span>
+          <% } else { %><span class="badge red">Unpaid (deducted)</span><% } %>
+        </td>
+        <td><%= item.note || '—' %></td>
+        <td>
+          <form method="POST" action="/admin/staff/<%= user.id %>/leave/<%= item.id %>/delete" onsubmit="return confirm('Remove this leave entry?');">
+            <button class="btn small secondary" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Advance payments</h2>
+<div class="card">
+  <form class="field-row" method="POST" action="/admin/staff/<%= user.id %>/advance">
+    <div class="field"><label>Date</label><input type="date" name="date" required /></div>
+    <div class="field"><label>Type</label>
+      <select name="type">
+        <option value="given">Given (advance out)</option>
+        <option value="repaid">Repaid / deducted</option>
+      </select>
+    </div>
+    <div class="field"><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" name="amount" required /></div>
+    <div class="field" style="flex:2;"><label>Note (optional)</label><input type="text" name="note" style="width:100%;" /></div>
+    <div class="field" style="align-self:flex-end;"><button class="btn" type="submit">Log entry</button></div>
+  </form>
+  <% if (advances.length === 0) { %>
+    <p class="empty">No advance entries yet.</p>
+  <% } else { %>
+  <table>
+    <thead><tr><th>Date</th><th>Type</th><th class="num">Amount</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      <% advances.slice().sort((a,b) => a.date < b.date ? 1 : -1).forEach(a => { %>
+      <tr>
+        <td><%= a.date %></td>
+        <td><% if (a.type === 'given') { %><span class="badge amber">Given</span><% } else { %><span class="badge green">Repaid</span><% } %></td>
+        <td class="num">₹<%= a.amount.toLocaleString('en-IN') %></td>
+        <td><%= a.note || '—' %></td>
+        <td>
+          <form method="POST" action="/admin/staff/<%= user.id %>/advance/<%= a.id %>/delete" onsubmit="return confirm('Remove this advance entry?');">
+            <button class="btn small secondary" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Overtime</h2>
+<div class="card">
+  <form class="field-row" method="POST" action="/admin/staff/<%= user.id %>/overtime">
+    <div class="field"><label>Date</label><input type="date" name="date" required /></div>
+    <div class="field"><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" name="amount" required /></div>
+    <div class="field" style="flex:2;"><label>Note (optional)</label><input type="text" name="note" placeholder="e.g. 3 hrs extra on stock-take" style="width:100%;" /></div>
+    <div class="field" style="align-self:flex-end;"><button class="btn" type="submit">Log overtime</button></div>
+  </form>
+  <p class="subtitle" style="margin:8px 0 0;">Each entry's amount is added on top of the fixed salary for the month it falls in.</p>
+  <% if (overtime.length === 0) { %>
+    <p class="empty">No overtime logged yet.</p>
+  <% } else { %>
+  <table style="margin-top:12px;">
+    <thead><tr><th>Date</th><th class="num">Amount</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      <% overtime.slice().sort((a,b) => a.date < b.date ? 1 : -1).forEach(o => { %>
+      <tr>
+        <td><%= o.date %></td>
+        <td class="num">₹<%= o.amount.toLocaleString('en-IN') %></td>
+        <td><%= o.note || '—' %></td>
+        <td>
+          <form method="POST" action="/admin/staff/<%= user.id %>/overtime/<%= o.id %>/delete" onsubmit="return confirm('Remove this overtime entry?');">
+            <button class="btn small secondary" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Advance salary</h2>
+<div class="card">
+  <form class="field-row" method="POST" action="/admin/staff/<%= user.id %>/advance-salary">
+    <div class="field"><label>Date</label><input type="date" name="date" required /></div>
+    <div class="field"><label>Amount (₹)</label><input type="number" step="0.01" min="0.01" name="amount" required /></div>
+    <div class="field" style="flex:2;"><label>Note (optional)</label><input type="text" name="note" style="width:100%;" /></div>
+    <div class="field" style="align-self:flex-end;"><button class="btn" type="submit">Log advance salary</button></div>
+  </form>
+  <p class="subtitle" style="margin:8px 0 0;">This is salary paid early &mdash; it's automatically deducted from the following month's salary due, and is kept separate from the advance (given/repaid) ledger below, so it never affects the outstanding advance balance.</p>
+  <% if (advanceSalary.length === 0) { %>
+    <p class="empty">No advance salary logged yet.</p>
+  <% } else { %>
+  <table style="margin-top:12px;">
+    <thead><tr><th>Date given</th><th class="num">Amount</th><th>Deducted from</th><th>Note</th><th></th></tr></thead>
+    <tbody>
+      <% advanceSalary.slice().sort((a,b) => a.date < b.date ? 1 : -1).forEach(a => { %>
+      <% const dm = parseInt(a.date.slice(5,7), 10); const dy = parseInt(a.date.slice(0,4), 10); %>
+      <% const appliesMonth = dm === 12 ? 1 : dm + 1; const appliesYear = dm === 12 ? dy + 1 : dy; %>
+      <tr>
+        <td><%= a.date %></td>
+        <td class="num">₹<%= a.amount.toLocaleString('en-IN') %></td>
+        <td><%= allMonthNames[appliesMonth] %> <%= appliesYear %></td>
+        <td><%= a.note || '—' %></td>
+        <td>
+          <form method="POST" action="/admin/staff/<%= user.id %>/advance-salary/<%= a.id %>/delete" onsubmit="return confirm('Remove this advance salary entry?');">
+            <button class="btn small secondary" type="submit">Remove</button>
+          </form>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Leave requests</h2>
+<div class="card">
+  <% if (leaveRequests.length === 0) { %>
+    <p class="empty">No leave requests submitted yet.</p>
+  <% } else { %>
+  <table>
+    <thead><tr><th>Requested date</th><th>Reason</th><th>Status</th></tr></thead>
+    <tbody>
+      <% leaveRequests.forEach(r => { %>
+      <tr>
+        <td><%= r.date %></td>
+        <td><%= r.reason || '—' %></td>
+        <td>
+          <% if (r.status === 'pending') { %><span class="badge amber">Pending</span>
+          <% } else if (r.status === 'approved') { %><span class="badge green">Approved</span>
+          <% } else { %><span class="badge red">Rejected</span><% } %>
+        </td>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+  <% } %>
+</div>
+
+<h2>Staff settings</h2>
+<div class="grid cols-3">
+  <div class="card">
+    <h3>Edit details</h3>
+    <form method="POST" action="/admin/staff/<%= user.id %>/edit">
+      <div class="field"><label>Name</label><input type="text" name="name" value="<%= user.name %>" style="width:100%;" /></div>
+      <div class="field"><label>Monthly salary (₹)</label><input type="number" step="0.01" name="monthlySalary" value="<%= user.monthlySalary %>" style="width:100%;" /></div>
+      <div class="field"><label><input type="checkbox" name="active" <%= user.active !== false ? 'checked' : '' %> style="width:auto;" /> Active (can log in)</label></div>
+      <button class="btn" type="submit">Save</button>
+    </form>
+  </div>
+  <div class="card">
+    <h3>Reset password</h3>
+    <form method="POST" action="/admin/staff/<%= user.id %>/password">
+      <div class="field"><label>New password</label><input type="text" name="password" required style="width:100%;" /></div>
+      <button class="btn secondary" type="submit">Set password</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

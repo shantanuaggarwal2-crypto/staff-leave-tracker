@@ -1,0 +1,30 @@
+<%- include('partials/header', { title: 'Add Staff', currentUser }) %>
+
+<div class="breadcrumb"><a href="/admin">Dashboard</a> / Add staff</div>
+<h1>Add a staff member</h1>
+
+<div class="card" style="max-width:460px;">
+  <% if (error) { %><div class="error"><%= error %></div><% } %>
+  <form method="POST" action="/admin/staff/new">
+    <div class="field">
+      <label>Full name</label>
+      <input type="text" name="name" required style="width:100%;" />
+    </div>
+    <div class="field">
+      <label>Username (for their login)</label>
+      <input type="text" name="username" required style="width:100%;" />
+    </div>
+    <div class="field">
+      <label>Temporary password</label>
+      <input type="text" name="password" required style="width:100%;" />
+    </div>
+    <div class="field">
+      <label>Monthly salary (₹)</label>
+      <input type="number" step="0.01" name="monthlySalary" required style="width:100%;" />
+    </div>
+    <button class="btn" type="submit">Add staff member</button>
+    <a class="btn secondary" href="/admin">Cancel</a>
+  </form>
+</div>
+
+<%- include('partials/footer') %>
